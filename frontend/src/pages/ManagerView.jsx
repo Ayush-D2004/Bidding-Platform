@@ -46,7 +46,7 @@ export default function ManagerView() {
     fetchRoster()
     fetchTeams()
     fetchActiveAuction().then((auction) => {
-      if (auction?.auction_id) connect(auction.auction_id)
+      connect(auction?.auction_id || 'global')
     })
   }, [])
 

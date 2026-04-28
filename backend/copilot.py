@@ -7,10 +7,12 @@ import google.generativeai as genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
-SYSTEM_PROMPT = """You are a cricket auction analyst. Given a player profile and current bid,
-respond ONLY with valid JSON (no markdown, no code fences, no extra text):
+SYSTEM_PROMPT = """You are a cricket auction analyst advising the Chief Auctioneer.
+If a player is UNDERVALUED, suggest waiting for more bids.
+If a player is OVERVALUED, be celebratory! The league is making a huge profit. Advise the auctioneer that it's an excellent time to sell.
+Respond ONLY with valid JSON:
 {"verdict":"UNDERVALUED"|"FAIR_VALUE"|"OVERVALUED","confidence":0.0-1.0,
-"reasoning":"2 sentence explanation","recommendation":"ACCEPT"|"HOLD"|"REJECT"}"""
+"reasoning":"2 sentence explanation in a tone appropriate for the verdict (caution for undervalue, celebratory for overvalue)","recommendation":"ACCEPT"|"HOLD"|"REJECT"}"""
 
 
 def _build_user_message(player: Dict[str, Any], current_bid: int, fair_value: int) -> str:
@@ -26,7 +28,7 @@ def _build_user_message(player: Dict[str, Any], current_bid: int, fair_value: in
         f"Base price: ₹{base // 100000}L, "
         f"Current bid: ₹{current_bid // 100000}L, "
         f"Fair value: ₹{fair_value // 100000}L. "
-        f"Should the auctioneer accept this bid?"
+        f"Verdict for the auctioneer?"
     )
 
 
@@ -89,22 +91,20 @@ def _rule_based_fallback(
 
     if ratio < 0.85:
         verdict = "UNDERVALUED"
-        recommendation = "ACCEPT"
+        recommendation = "HOLD"
         reasoning = (
-            f"{player.get('name')} is currently bidding at "
-            f"₹{current_bid // 100000}L against a fair value of ₹{fair_value // 100000}L "
-            f"({round((1 - ratio) * 100)}% below market). "
-            f"This {skill_type} specialist represents excellent value — accepting now locks in a premium asset."
+            f"{player.get('name')} is currently at ₹{current_bid // 100000}L, "
+            f"well below the fair value of ₹{fair_value // 100000}L. "
+            f"Wait for more bids! This {skill_type} asset is worth much more."
         )
         confidence = min(0.95, 0.85 + (0.85 - ratio))
     elif ratio > 1.15:
         verdict = "OVERVALUED"
-        recommendation = "REJECT"
+        recommendation = "ACCEPT"
         reasoning = (
-            f"{player.get('name')} is being bid at "
-            f"₹{current_bid // 100000}L which is {round((ratio - 1) * 100)}% above fair value "
-            f"of ₹{fair_value // 100000}L. "
-            f"Risk of overpaying for this {skill_type} — recommend holding until the price corrects."
+            f"Excellent result! {player.get('name')} has crossed the fair value of ₹{fair_value // 100000}L "
+            f"and is now at ₹{current_bid // 100000}L ({round((ratio - 1) * 100)}% premium). "
+            f"The league is making a great profit—safe to hammer this down!"
         )
         confidence = min(0.95, 0.75 + (ratio - 1.15))
     else:

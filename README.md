@@ -20,8 +20,11 @@
 
 ```bash
 cd backend
+python -m venv venv
+venv/Scripts/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+# The database (npl_auction.db) initializes and seeds automatically on first run
+uvicorn main.app --reload --port 8000
 ```
 
 ### Terminal 2 — Frontend
@@ -33,6 +36,18 @@ npm run dev
 ```
 
 Open **http://localhost:5173** in your browser.
+
+---
+
+## 🧪 Testing
+
+The project includes a comprehensive test suite (89+ tests) covering auth, valuation, events, bidding logic, and API integration.
+
+```bash
+cd backend
+# Activate your venv first
+python -m pytest tests/ -v
+```
 
 ---
 
@@ -51,13 +66,13 @@ The app runs fine **without** a Gemini API key — the copilot uses deterministi
 
 ## Demo Users
 
-| Username     | Password   | Role                        |
-| ------------ | ---------- | --------------------------- |
-| `auctioneer` | `npl@2026` | Chief Auctioneer            |
-| `mumbai`     | `npl@2026` | Mumbai Mavericks Manager    |
-| `delhi`      | `npl@2026` | Delhi Dynamos Manager       |
-| `pune`       | `npl@2026` | Pune Panthers Manager       |
-| `chennai`    | `npl@2026` | Chennai Challengers Manager |
+| Username     | Password    | Role                        |
+| ------------ | ----------- | --------------------------- |
+| `auctioneer` | `npl2026`    | Chief Auctioneer            |
+| `mumbai`     | `npl2026`    | Mumbai Mavericks Manager    |
+| `delhi`      | `npl2026`    | Delhi Dynamos Manager       |
+| `pune`       | `npl2026`    | Pune Panthers Manager       |
+| `chennai`    | `npl2026`    | Chennai Challengers Manager |
 
 ---
 
@@ -77,7 +92,14 @@ The app runs fine **without** a Gemini API key — the copilot uses deterministi
 - **Valuation Spread** bar — Base Price → Fair Value → Current Bid with overpay warning
 - **Budget Tracker** — colour-coded bar (green → amber → red) with rival team budgets
 - **Team Synergy Graph** — D3 force-directed graph; edge thickness = skill complementarity; dashed nodes = missing roles
-- Roster tab with acquired players and per-player stats
+- **Roster Tab** — Real-time tracking of acquired players and per-player valuation stats.
+
+### Validation & Logic
+
+- **Self-Bidding Protection** — Prevents teams from bidding against their own active leading bid.
+- **Dynamic Player Pool** — Sold players are automatically filtered out from the auction initiation list to prevent duplicate auctions.
+- **Concurrent Safety** — Per-auction `asyncio.Lock` ensures bid processing is atomic and race-condition free.
+- **Event-Sourced State** — All auction states are derived by replaying the immutable `auction_events` log.
 
 ### System
 
@@ -85,44 +107,6 @@ The app runs fine **without** a Gemini API key — the copilot uses deterministi
 - Per-auction `asyncio.Lock` — race-condition-free bidding for concurrent managers
 - Auto-reconnecting WebSocket with exponential backoff in the frontend
 - CORS-open for local development
-
----
-
-## Project Structure
-
-```
-npl-auction/
-├── backend/
-│   ├── main.py           # FastAPI app, REST + WebSocket endpoints
-│   ├── database.py       # aiosqlite setup, schema, seed data
-│   ├── models.py         # Pydantic request/response models
-│   ├── events.py         # Event sourcing: append + replay
-│   ├── bidding.py        # Place bid, accept, reject (asyncio.Lock)
-│   ├── valuation.py      # Fair value: Vt = base·e^(k·Δt) + skill bonus
-│   ├── copilot.py        # Gemini SDK copilot with fallback
-│   ├── auth.py           # JWT creation/verification, RBAC
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── store/auctionStore.js    # Zustand + WebSocket
-│   │   ├── pages/
-│   │   │   ├── Login.jsx
-│   │   │   ├── AuctioneerView.jsx
-│   │   │   └── ManagerView.jsx
-│   │   ├── components/
-│   │   │   ├── PlayerCard.jsx
-│   │   │   ├── BidVelocityChart.jsx
-│   │   │   ├── TeamSynergyGraph.jsx
-│   │   │   ├── ValuationSpread.jsx
-│   │   │   ├── CopilotPanel.jsx
-│   │   │   └── AuctionLog.jsx
-│   │   └── hooks/useWebSocket.js
-│   ├── package.json
-│   ├── vite.config.js
-│   └── tailwind.config.js
-└── README.md
-```
 
 ---
 
@@ -159,4 +143,4 @@ npl-auction/
 - `AUCTION_CLOSED` — winner + final price
 - `BID_REJECTED` — rejection broadcast
 - `COPILOT_RESULT` — AI analysis result
-- `BID_RESULT` — bid success/failure (to bidder only)
+- `BID_RESULT` — success/failure (includes error codes like `ALREADY_HIGHEST_BIDDER`, `INSUFFICIENT_BUDGET`, etc.)

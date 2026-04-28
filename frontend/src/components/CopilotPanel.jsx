@@ -16,11 +16,11 @@ const VERDICT_CONFIG = {
     rec: 'HOLD',
   },
   OVERVALUED: {
-    icon: '📉',
-    label: 'Overvalued',
-    class: 'bg-red-500/20 text-red-400 border-red-500/40',
-    glow: 'shadow-red-500/20',
-    rec: 'REJECT',
+    icon: '💰',
+    label: 'Profit Zone',
+    class: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    glow: 'shadow-amber-500/20',
+    rec: 'ACCEPT',
   },
 }
 
@@ -53,7 +53,7 @@ export default function CopilotPanel({ analysis, loading, onRequest }) {
           🤖
         </div>
         <div className="text-center">
-          <p className="text-text-primary font-semibold mb-1">AI Copilot</p>
+          <p className="text-text-primary font-semibold mb-1">Copilot</p>
           <p className="text-text-muted text-sm">Get an instant verdict on the current bid vs. fair value.</p>
         </div>
         {onRequest && (

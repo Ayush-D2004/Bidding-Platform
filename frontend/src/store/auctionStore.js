@@ -53,14 +53,18 @@ const useAuctionStore = create((set, get) => ({
   // ── WebSocket ───────────────────────────────────────────────────────────────
   connect: (auctionId) => {
     const { token, ws } = get()
-    if (!token || !auctionId) return
+    if (!token) return
+    
+    const actualAuctionId = auctionId || 'global'
+    
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.onclose = null // prevent race conditions where old socket onclose nullifies the new one
+      if (get().auctionId === actualAuctionId) return // Already connected to this room
+      ws.onclose = null
       ws.close()
     }
 
-    set({ connectionStatus: 'connecting', auctionId })
-    const wsUrl = `ws://localhost:8000/ws/${auctionId}?token=${token}`
+    set({ connectionStatus: 'connecting', auctionId: actualAuctionId })
+    const wsUrl = `ws://localhost:8000/ws/${actualAuctionId}?token=${token}`
     const socket = new WebSocket(wsUrl)
 
     socket.onopen = () => {
