@@ -55,6 +55,7 @@ const useAuctionStore = create((set, get) => ({
     const { token, ws } = get()
     if (!token || !auctionId) return
     if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.onclose = null // prevent race conditions where old socket onclose nullifies the new one
       ws.close()
     }
 
@@ -111,7 +112,14 @@ const useAuctionStore = create((set, get) => ({
           bids: [],
           copilotAnalysis: null,
         })
+        if (msg.auction_id && get().auctionId !== msg.auction_id) {
+          // Reconnect to the new auction
+          setTimeout(() => {
+            get().connect(msg.auction_id)
+          }, 100);
+        }
         get()._notify('🎤 New auction started!', 'info')
+        get().fetchPlayers()
         break
 
       case 'BID_PLACED': {
@@ -120,26 +128,46 @@ const useAuctionStore = create((set, get) => ({
           amount: msg.amount,
           timestamp: new Date().toISOString(),
         }
-        const updated = [...get().bids, newBid]
+        const updatedBids = [...get().bids, newBid]
+        
+        // Also update local events list for immediate UI feedback
+        const newEvent = {
+          id: `local-${Date.now()}`,
+          event_type: 'BID_PLACED',
+          payload: { managerId: msg.managerId, amount: msg.amount },
+          occurred_at: new Date().toISOString()
+        }
+        const updatedEvents = [...(currentAuction?.events || []), newEvent]
+
         set({
-          bids: updated,
+          bids: updatedBids,
           currentAuction: currentAuction
-            ? { ...currentAuction, current_bid: msg.amount, current_bidder: msg.managerId, bid_history: updated }
+            ? { ...currentAuction, current_bid: msg.amount, current_bidder: msg.managerId, bid_history: updatedBids, events: updatedEvents }
             : currentAuction,
         })
         get()._notify(`💰 New bid: ₹${(msg.amount / 100000).toFixed(1)}L by ${msg.managerId}`, 'bid')
         break
       }
 
-      case 'AUCTION_CLOSED':
+      case 'AUCTION_CLOSED': {
+        const closeEvent = {
+          id: `local-${Date.now()}`,
+          event_type: 'AUCTION_CLOSED',
+          payload: { winner_team: msg.winner_team, final_price: msg.final_price },
+          occurred_at: new Date().toISOString()
+        }
+        const updatedEvents = [...(currentAuction?.events || []), closeEvent]
+        
         set({
           currentAuction: currentAuction
-            ? { ...currentAuction, status: 'CLOSED', winner_team: msg.winner_team, final_price: msg.final_price }
+            ? { ...currentAuction, status: 'CLOSED', winner_team: msg.winner_team, final_price: msg.final_price, events: updatedEvents }
             : currentAuction,
         })
         get()._notify(`🏆 Auction closed! Winner: ${msg.winner_team} at ₹${(msg.final_price / 100000).toFixed(1)}L`, 'success')
         get().fetchRoster()
+        get().fetchPlayers()
         break
+      }
 
       case 'BID_REJECTED':
         get()._notify(`❌ Bid rejected: ${msg.reason || 'No reason given'}`, 'error')
@@ -200,9 +228,14 @@ const useAuctionStore = create((set, get) => ({
   // ── REST actions ─────────────────────────────────────────────────────────────
   fetchPlayers: async () => {
     const { token } = get()
-    const resp = await axios.get(`${API}/players`, { headers: { Authorization: `Bearer ${token}` } })
-    set({ players: resp.data.players || [] })
-    return resp.data.players
+    try {
+      const resp = await axios.get(`${API}/players`, { headers: { Authorization: `Bearer ${token}` } })
+      set({ players: resp.data.players || [] })
+      return resp.data.players
+    } catch (e) {
+      console.error('[Store] fetchPlayers failed:', e)
+      return []
+    }
   },
 
   fetchActiveAuction: async () => {
@@ -221,15 +254,20 @@ const useAuctionStore = create((set, get) => ({
 
   startAuction: async (playerId) => {
     const { token } = get()
-    const resp = await axios.post(
-      `${API}/auctions/start`,
-      { player_id: playerId },
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-    const { auction_id, state } = resp.data
-    set({ currentAuction: state, bids: [], auctionId: auction_id })
-    get().connect(auction_id)
-    return resp.data
+    try {
+      const resp = await axios.post(
+        `${API}/auctions/start`,
+        { player_id: playerId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const { auction_id, state } = resp.data
+      set({ currentAuction: state, bids: [], auctionId: auction_id })
+      get().connect(auction_id)
+      return resp.data
+    } catch (e) {
+      console.error('[Store] startAuction failed:', e)
+      return null
+    }
   },
 
   fetchRoster: async () => {
@@ -250,8 +288,12 @@ const useAuctionStore = create((set, get) => ({
 
   fetchTeams: async () => {
     const { token } = get()
-    const resp = await axios.get(`${API}/teams`, { headers: { Authorization: `Bearer ${token}` } })
-    set({ teams: resp.data.teams || [] })
+    try {
+      const resp = await axios.get(`${API}/teams`, { headers: { Authorization: `Bearer ${token}` } })
+      set({ teams: resp.data.teams || [] })
+    } catch (e) {
+      console.error('[Store] fetchTeams failed:', e)
+    }
   },
 
   fetchAllRosters: async () => {
@@ -281,5 +323,16 @@ const useAuctionStore = create((set, get) => ({
 
   clearNotification: () => set({ notification: null }),
 }))
+
+// Automatically clear session if backend responds with 401 Unauthorized
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      useAuctionStore.getState().logout()
+    }
+    return Promise.reject(error)
+  }
+)
 
 export default useAuctionStore

@@ -7,38 +7,38 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = os.getenv("JWT_SECRET", "npl-auction-secret-key-2024-change-in-prod")
+SECRET_KEY = os.getenv("JWT_SECRET", "npl-auction-secret-key-2026-change-in-prod")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
 
 # Hardcoded users for demo (role, team_id, password)
 USERS: Dict[str, Dict[str, Any]] = {
     "auctioneer": {
-        "password": "npl2024",
+        "password": "npl2026",
         "role": "AUCTIONEER",
         "team_id": None,
         "display_name": "Chief Auctioneer",
     },
     "mumbai": {
-        "password": "npl2024",
+        "password": "npl2026",
         "role": "TEAM_MANAGER",
         "team_id": "team-1",
         "display_name": "Mumbai Mavericks Manager",
     },
     "delhi": {
-        "password": "npl2024",
+        "password": "npl2026",
         "role": "TEAM_MANAGER",
         "team_id": "team-2",
         "display_name": "Delhi Dynamos Manager",
     },
     "pune": {
-        "password": "npl2024",
+        "password": "npl2026",
         "role": "TEAM_MANAGER",
         "team_id": "team-3",
         "display_name": "Pune Panthers Manager",
     },
     "chennai": {
-        "password": "npl2024",
+        "password": "npl2026",
         "role": "TEAM_MANAGER",
         "team_id": "team-4",
         "display_name": "Chennai Challengers Manager",

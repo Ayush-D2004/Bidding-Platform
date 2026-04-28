@@ -17,7 +17,7 @@ function ProtectedRoute({ children, requiredRole }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import clsx from 'clsx'
 import useAuctionStore from '../store/auctionStore'
 import PlayerCard from '../components/PlayerCard'
 import ValuationSpread from '../components/ValuationSpread'
 import TeamSynergyGraph from '../components/TeamSynergyGraph'
 import BidVelocityChart from '../components/BidVelocityChart'
 import AuctionLog from '../components/AuctionLog'
+import Leaderboard from '../components/Leaderboard'
 
 const TEAM_NAMES = {
   'team-1': 'Mumbai Mavericks',
@@ -133,17 +136,22 @@ export default function ManagerView() {
             { id: 'auction', label: '⚡ Live Auction' },
             { id: 'roster', label: '👥 My Roster' },
             { id: 'synergy', label: '🔗 Team Synergy' },
+            { id: 'leaderboard', label: '🏆 Leaderboard' },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all duration-200 ${
+              className={clsx(
+                'px-4 py-3 text-sm transition-all border-b-2 relative',
                 activeTab === tab.id
-                  ? 'border-accent-gold text-accent-gold'
-                  : 'border-transparent text-text-muted hover:text-text-secondary'
-              }`}
+                  ? 'text-accent-gold border-accent-gold font-bold'
+                  : 'text-text-muted border-transparent hover:text-text-primary'
+              )}
             >
-              {tab.label}
+              <span className="relative z-10">{tab.label}</span>
+              {activeTab === tab.id && (
+                <motion.div layoutId="activeTabUnder" className="absolute inset-0 bg-accent-gold/5" />
+              )}
             </button>
           ))}
         </div>
@@ -163,21 +171,26 @@ export default function ManagerView() {
           {notification.message}
         </div>
       )}
-
-      <div className="max-w-screen-2xl mx-auto px-6 py-6">
-
-        {/* ══ AUCTION TAB ══ */}
-        {activeTab === 'auction' && (
-          <div className="grid grid-cols-12 gap-6">
-            {/* Player + Bid */}
-            <div className="col-span-12 lg:col-span-4 space-y-5">
-              {/* Winning indicator */}
-              {isActive && isWinning && (
-                <div className="flex items-center gap-3 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl px-4 py-3 animate-pulse-slow">
-                  <span className="text-xl">🏆</span>
-                  <p className="text-emerald-400 font-bold">You're in the lead!</p>
-                </div>
-              )}
+      <div className="max-w-screen-2xl mx-auto px-6 py-6 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'auction' && (
+              <div className="grid grid-cols-12 gap-6">
+                {/* Player + Bid */}
+                <div className="col-span-12 lg:col-span-4 space-y-5">
+                  {/* Winning indicator */}
+                  {isActive && isWinning && (
+                    <div className="flex items-center gap-3 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl px-4 py-3 animate-pulse-slow">
+                      <span className="text-xl">🏆</span>
+                      <p className="text-emerald-400 font-bold">You're in the lead!</p>
+                    </div>
+                  )}
 
               {player ? (
                 <PlayerCard player={player} currentBid={currentBid} fairValue={valuation?.fair_value} />
@@ -494,6 +507,15 @@ export default function ManagerView() {
             </div>
           </div>
         )}
+
+        {/* ══ LEADERBOARD TAB ══ */}
+        {activeTab === 'leaderboard' && (
+              <div className="animate-fade-in">
+                <Leaderboard teams={teams} />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   )

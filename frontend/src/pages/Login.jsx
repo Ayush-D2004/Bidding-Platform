@@ -72,7 +72,7 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      const user = await login(selected.username, 'npl2024')
+      const user = await login(selected.username, 'npl2026')
       if (user.role === 'AUCTIONEER') navigate('/auctioneer')
       else navigate('/manager')
     } catch (e) {
@@ -98,7 +98,7 @@ export default function Login() {
             NPL <span className="text-accent-gold">Auction</span>
           </h1>
         </div>
-        <p className="text-text-muted text-lg">National Premier League · Season 2024</p>
+        <p className="text-text-muted text-lg">Nagpur Premier League · Season-1 @2026</p>
         <div className="mt-3 flex items-center justify-center gap-2">
           <span className="w-2 h-2 rounded-full bg-accent-emerald animate-pulse" />
           <span className="text-accent-emerald text-sm font-medium">Live Platform Active</span>
@@ -177,7 +177,7 @@ export default function Login() {
             'Select a role to continue'
           )}
         </button>
-        <p className="text-text-muted text-xs">All accounts use password: <code className="text-accent-gold">npl2024</code></p>
+        <p className="text-text-muted text-xs">All accounts use password: <code className="text-accent-gold">npl2026</code></p>
       </div>
     </div>
   )

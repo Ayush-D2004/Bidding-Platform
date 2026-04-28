@@ -38,7 +38,7 @@ from copilot import get_copilot_analysis
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="NPL Auction Platform",
-    description="National Premier League Cricket Auction API",
+    description="Nagpur Premier League Cricket Auction API",
     version="1.0.0",
 )
 

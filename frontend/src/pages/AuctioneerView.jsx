@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import useAuctionStore from '../store/auctionStore'
 import PlayerCard from '../components/PlayerCard'
 import BidVelocityChart from '../components/BidVelocityChart'
@@ -66,7 +67,7 @@ export default function AuctioneerView() {
             <span className="text-2xl">🎤</span>
             <div>
               <h1 className="font-black text-text-primary leading-none">Auctioneer Command</h1>
-              <p className="text-text-muted text-xs">NPL Season 2024</p>
+              <p className="text-text-muted text-xs">NPL Season-1 @2026</p>
             </div>
           </div>
 
@@ -102,9 +103,13 @@ export default function AuctioneerView() {
         </div>
       )}
 
-      <div className="max-w-screen-2xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
+      <main className="max-w-screen-2xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
         {/* ── LEFT: Player + Controls ── */}
-        <div className="col-span-12 lg:col-span-4 space-y-5">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="col-span-12 lg:col-span-4 space-y-5"
+        >
           {/* Player selector */}
           <div className="card">
             <h2 className="text-sm font-bold text-text-secondary uppercase tracking-widest mb-4">
@@ -176,10 +181,15 @@ export default function AuctioneerView() {
               </p>
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* ── CENTRE: Bid controls + Chart ── */}
-        <div className="col-span-12 lg:col-span-5 space-y-5">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="col-span-12 lg:col-span-5 space-y-5"
+        >
           {/* Accept / Reject buttons */}
           {statusActive && (
             <div className="card">
@@ -238,10 +248,15 @@ export default function AuctioneerView() {
             </h2>
             <AuctionLog events={events} />
           </div>
-        </div>
+        </motion.div>
 
         {/* ── RIGHT: AI Copilot ── */}
-        <div className="col-span-12 lg:col-span-3 space-y-5">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="col-span-12 lg:col-span-3 space-y-5"
+        >
           <div className="card h-fit">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm font-bold text-text-secondary uppercase tracking-widest">
@@ -287,8 +302,8 @@ export default function AuctioneerView() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </main>
 
       {/* ── Reject modal ── */}
       {showRejectModal && (

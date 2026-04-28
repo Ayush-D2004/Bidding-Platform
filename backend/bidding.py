@@ -53,6 +53,9 @@ async def place_bid(
         if state.get("status") != "ACTIVE":
             return {"success": False, "reason": "AUCTION_NOT_ACTIVE"}
 
+        if state.get("current_bidder") == manager_id:
+            return {"success": False, "reason": "ALREADY_HIGHEST_BIDDER"}
+
         if amount <= state.get("current_bid", 0):
             return {"success": False, "reason": "BID_TOO_LOW"}
 
@@ -60,13 +63,12 @@ async def place_bid(
         team_row = await (
             await db.execute("SELECT budget FROM teams WHERE id = ?", (manager_id,))
         ).fetchone()
-        # manager_id here is the team_id
-        team_budget_row = await (
-            await db.execute(
-                "SELECT t.budget FROM teams t WHERE t.id = (SELECT team_id FROM teams WHERE id = ?)",
-                (manager_id,),
-            )
-        ).fetchone()
+        
+        if not team_row:
+            return {"success": False, "reason": "TEAM_NOT_FOUND"}
+            
+        if amount > team_row["budget"]:
+            return {"success": False, "reason": "INSUFFICIENT_BUDGET"}
 
         # Append event
         await append_event(
